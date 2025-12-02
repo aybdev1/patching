@@ -21,31 +21,39 @@ jobs:
         with:
           python-version: '3.11'
 
-      # 3. Install SAST tools (no need to change your project yet)
+      # 3. Install SAST tools (Python-based)
       - name: Install SAST tools
         run: |
-          pip install --upgrade pip
-          pip install bandit semgrep gitleaks pip-audit
+          python -m pip install --upgrade pip
+          python -m pip install bandit semgrep pip-audit
 
-      # 4. Run Bandit on your backend code
+      # 4. Install gitleaks (not a Python package)
+      - name: Install gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64.tar.gz -o gitleaks.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      # 5. Run Bandit on your backend code
       #    👉 Change "src" to your real backend folder if needed
       - name: Run Bandit (Python SAST)
         run: |
           echo "Running Bandit on backend code"
           bandit -r src -ll -x tests,.venv,venv || exit 1
 
-      # 5. Run Semgrep with OWASP Top 10 rules
+      # 6. Run Semgrep with OWASP Top 10 rules
       - name: Run Semgrep (OWASP Top 10)
         run: |
           echo "Running Semgrep with OWASP Top 10 ruleset"
           semgrep --config=p/owasp-top-ten --error --exclude .venv --exclude venv .
 
-      # 6. Dependency vulnerability scan (Python deps)
+      # 7. Dependency vulnerability scan (Python deps)
       - name: Dependency scan (pip-audit)
         run: |
           if [ -f "requirements.txt" ]; then pip-audit -r requirements.txt; fi
 
-      # 7. Secrets detection (hardcoded passwords, tokens, etc.)
+      # 8. Secrets detection (hardcoded passwords, tokens, etc.)
       - name: Secrets scan (gitleaks)
         run: |
           gitleaks detect --no-git -v
