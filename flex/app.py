@@ -72,7 +72,14 @@ def api_history(target_name):
     return jsonify(history)
 
 
+ 
+
 if __name__ == "__main__":
+    # Use env var to control debug; default is False (secure)
     debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
-    app.run(debug=debug_mode)
+    app.run(
+        host="0.0.0.0",      # or whatever you use now
+        port=int(os.getenv("FLASK_PORT", 5000)),
+        debug=debug_mode
+    )
 
