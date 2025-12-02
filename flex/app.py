@@ -74,11 +74,13 @@ def api_history(target_name):
 
  
 
+
+
 if __name__ == "__main__":
     # Secure: no hardcoded debug=True
     debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
     app.run(
-        host="0.0.0.0",                         # keep your existing host if different
+        host="0.0.0.0",                         # or your existing host
         port=int(os.getenv("FLASK_PORT", 5000)),
         debug=debug_mode
     )
