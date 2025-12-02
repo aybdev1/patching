@@ -72,10 +72,6 @@ def api_history(target_name):
     return jsonify(history)
 
 
- 
-
-
-
 if __name__ == "__main__":
     # Secure: no hardcoded debug=True
     debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
