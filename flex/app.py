@@ -73,6 +73,7 @@ def api_history(target_name):
 
  
 
+#error from the app and waiting for detection from the piupline
 if __name__ == "__main__":
     # Secure: no hardcoded debug or host
     debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
