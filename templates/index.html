@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>PatchMate — AI-assisted Patching</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      .target, .patch { border: 1px solid #ddd; padding: 12px; margin-bottom: 8px; border-radius: 6px; }
+      .flex { display:flex; gap:12px; align-items:center; }
+      .btn { padding:8px 10px; border-radius:6px; background:#2b8; color:white; cursor:pointer; border:none }
+      .btn-danger { background:#d33 }
+    </style>
+  </head>
+  <body>
+    <h1>PatchMate</h1>
+    <h2>Targets</h2>
+    <div id="targets">
+      {% for t in targets %}
+      <div class="target">
+        <div class="flex">
+          <div><strong>{{ t.name }}</strong></div>
+          <div>Version: <em>{{ t.version or 'unknown' }}</em></div>
+        </div>
+        <div><small>Fingerprint: {{ t.fingerprint|length }} files</small></div>
+        <div><a href="#" onclick="loadHistory('{{ t.name }}'); return false;">View patch history</a></div>
+        <div id="history-{{ t.name }}"></div>
+      </div>
+      {% else %}
+      <div>No targets found. Put them under the targets/ directory.</div>
+      {% endfor %}
+    </div>
+
+    <h2>Available Patches</h2>
+    <div id="patches">
+      {% for p in patches %}
+      <div class="patch">
+        <div class="flex">
+          <div><strong>{{ p.meta.component or p.meta.get('component','-') }} — {{ p.meta.get('id') or p.id }}</strong></div>
+          <div>From {{ p.meta.get('from_version') }} → {{ p.meta.get('to_version') }}</div>
+          <div>Severity: {{ p.meta.get('severity','-') }}</div>
+          <div>AI score: {{ p.ai_score | round(2) }}</div>
+        </div>
+        <div>{{ p.meta.get('description','') }}</div>
+        <div style="margin-top:8px">
+          <select id="target-select-{{ p.id }}">
+            {% for t in targets %}
+            <option value="{{ t.name }}">{{ t.name }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn" onclick="applyPatch('{{ p.id }}', document.getElementById('target-select-{{ p.id }}').value)">Apply</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <script>
+      async function applyPatch(patchId, targetName) {
+        if (!confirm("Apply patch " + patchId + " to " + targetName + "?")) return;
+        const res = await fetch("/api/apply_patch", {
+          method: "POST",
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({patch_id: patchId, target_name: targetName})
+        });
+        const j = await res.json();
+        if (j.ok) {
+          alert("Patch applied. Backup: " + j.result.backup);
+          location.reload();
+        } else {
+          alert("Error: " + (j.error || JSON.stringify(j)));
+        }
+      }
+
+      async function loadHistory(targetName) {
+        const el = document.getElementById("history-" + targetName);
+        el.innerHTML = "Loading...";
+        const res = await fetch("/api/history/" + encodeURIComponent(targetName));
+        const data = await res.json();
+        el.innerHTML = "<ul>" + data.map(h => "<li>" + h.patch_id + " @ " + h.applied_at + "</li>").join("") + "</ul>";
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>AI Patch Manager</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    body {
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+      color: #222;
+      margin: 0;
+      padding: 0;
+      min-height: 70vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      background: #fff;
+      padding: 2rem 2.5rem;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      max-width: 800px;
+      width: 90%;
+      transition: all 0.3s ease;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2b2f77;
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.5px;
+    }
+
+    label {
+      font-weight: 500;
+      color: #333;
+    }
+
+    input {
+      padding: 8px 12px;
+      margin-left: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+      outline: none;
+      transition: 0.2s;
+    }
+
+    input:focus {
+      border-color: #4a6cf7;
+      box-shadow: 0 0 4px rgba(74, 108, 247, 0.3);
+    }
+
+    button {
+      margin-left: 8px;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      transition: background 0.25s, transform 0.1s;
+    }
+
+
+    .btnPrimary {
+      background: #007bff;
+    }
+
+    
+    #btnFetch { background: #007bff; }
+    #btndelete { background: #e74c3c; }
+    #btnScan { background: #28a745; }
+
+    button:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    #scanOutput {
+      background: #f8f9fa;
+      padding: 1rem;
+      margin-top: 1.2rem;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      white-space: pre-wrap;
+      font-family: Consolas, monospace;
+      font-size: 0.9rem;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    #patchList {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: 8px;
+      background: #fdfdfd;
+      border: 1px solid #e3e3e3;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 1.1rem;
+      }
+
+      input {
+        width: 100%;
+        margin: 10px 0;
+      }
+
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚙️ AI Patch Manager</h1>
+
+    <div class="toolbar">
+      <label>Hostname:
+        <input id="hostname" value="MYHOST" placeholder="Enter hostname...">
+      </label>
+      <button id="btnFetch">Fetch Patches</button>
+      <button id="btndelete">Delete Patches</button>
+      <button id="btnScan">Run Scan</button>
+    </div>
+
+    <pre id="scanOutput">Output will appear here...</pre>
+    <div id="patchList"><p>No patches loaded yet.</p></div>
+  </div>
+
+
+<script src="/static/main.js"></script>
+
+<script>
+
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btnScan = document.getElementById("btnScan");
+  const scanOutput = document.getElementById("scanOutput");
+
+  btnScan.addEventListener("click", async () => {
+    scanOutput.textContent = "Running scan...";
+    try {
+      const res = await fetch("/api/run_scan", { method: "POST" });
+      const data = await res.json();
+      scanOutput.textContent = `STDOUT:\n${data.stdout}\n\nSTDERR:\n${data.stderr}`;
+    } catch (err) {
+      console.error(err);
+      scanOutput.textContent = "Failed to run scan";
+    }
+  });
+});
+
+
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btnDelete = document.getElementById("btndelete2222");
+  const hostnameInput = document.getElementById("hostname22222");
+  const patchList = document.getElementById("patchList2222");
+  btnDelete.addEventListener("click", async () => {
+    const hostname = hostnameInput.value.trim();
+    
+    if (!hostname) return alert("Enter a hostname first");
+    if (!confirm(`Delete all patch entries for ${hostname}?`)) return;
+
+    try {
+      const res = await fetch(`/api/patches/${hostname}`, { method: "DELETE" });
+      const data = await res.json();
+      alert(`Deleted patches for ${data.host}`);
+      patchList.innerHTML = "<p>No patches found.</p>";
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete patches");
+    }
+  });
+});
+</script>
+
+
+</body>
+</html>

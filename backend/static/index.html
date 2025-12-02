@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI Patch Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body {
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+    margin: 0; padding: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #222;
+    
+  font-size: 12px; /* adjust the number as needed */
+ 
+  }
+
+  .container {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    width: 95%; max-width: 1000px;
+  }
+
+  h1 { text-align:center; color:#2b2f77; margin-bottom:1rem; }
+
+  .toolbar {
+    display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:1rem;
+  }
+  input { padding:8px 12px; border-radius:6px; border:1px solid #ccc; outline:none; }
+  button { padding:8px 14px; border:none; border-radius:6px; color:#fff; cursor:pointer; }
+  #btnFetch { background:#007bff; } #btndelete { background:#ac2213; } #btnScan { background:#00caee; }
+  #btnHost { background:#214ad1b4; }
+  button:hover { filter: brightness(1.1); }
+
+  .status-panel {
+    display:flex; justify-content:space-around;
+    background:#eef2f7; padding:1rem; border-radius:10px; margin-bottom:1rem;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .status-item h3 { margin:0;color:#2b2f77; } 
+  .status-item p { margin:0.2rem 0 0;color:#555; font-size:0.9rem; }
+
+  #scanOutput, #patchList {
+    background:#f8f9fa; padding:1rem; border-radius:8px; border:1px solid #ddd; 
+    font-family:Consolas, monospace; font-size:0.9rem; max-height:350px; overflow-y:auto; margin-bottom:1rem;
+  }
+  table { width:100%; border-collapse:collapse; } 
+  table th, table td { padding:6px; border-bottom:1px solid #ddd; } 
+  table th { background:#2b2f77; color:#fff; }
+
+  .chart-container {
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    gap:30px;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+  .chart-container canvas {
+    width: 95%;
+    max-width: 100%;
+    min-width: 250px;
+    margin-top: 20px; 
+  }
+
+  @media(max-width:800px){
+    .chart-container canvas { width: 90%;}
+    .toolbar { flex-direction:column; }
+    input, button { width:100%; }
+  }
+
+#priorityChart {
+  height: 200px !important;
+  max-height: 200px !important;
+}
+
+#cpuUsageChart {
+  height: 200px !important;
+  max-height: 200px !important;
+}
+
+#cpuFreqChart {
+  height: 200px !important;
+  max-height: 200px !important;
+}
+
+
+
+   #btnFetchCpu {
+     
+      border: none;
+      background-color: #007bff;
+      color: white;
+       border-radius: 5px;
+      cursor: pointer;
+       
+    }
+    #btnFetchCpu:hover {
+      background-color: #0056b3;
+    }
+
+.chart-container2 {
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    gap:30px;
+    flex-wrap: wrap;
+    
+  }
+
+  h2{
+     text-align: left !important;
+     margin-top: 15px;
+  }
+.cpu-header {
+  display: flex;
+  align-items: center;     
+  justify-content: space-between;  
+}
+.cpu-header h2 {
+  margin: 0;
+}
+
+
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #2c3e50;
+  padding: 10px 20px;
+}
+
+.nav-logo {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 20px;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: #bdc3c7;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+  background-color: #3498db;
+  color: white;
+}
+
+
+
+ .cpu-title {
+  font-family: 'Inter', 'Poppins', sans-serif;
+   font-weight: 600;
+  color: #1f2937; /* Neutral dark gray */
+  text-align: center;
+  margin: 20px 0;
+  position: relative;
+}
+
+ 
+/* Optional subtle fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cpu-title {
+  animation: fadeIn 0.6s ease-out;
+}
+
+
+</style>
+</head>
+<body>
+
+
+
+
+<div class="container">
+  <nav class="navbar">
+    <div class="nav-logo">System Monitor</div>
+    <ul class="nav-links">
+      <li><a href="/" class="active">Dashboard</a></li>
+      <li><a href="/vulnerability">Vulnerability Scan</a></li>
+    </ul>
+</nav>
+<fieldset>
+    <h2 class="cpu-title">⚙️ AI Patch Manager</h2>
+    <div class="toolbar">
+        <label>Hostname: <input id="hostname" placeholder="Enter hostname..."></label>
+        <button id="btnHost">Get The hostname</button>
+        <button id="btnFetch">Fetch Patches</button>
+        <button id="btndelete">Delete Patches</button>
+        <button id="btnScan">Run Scan</button>
+        <button id="btnFetchCpu">Start Monitoring</button>
+    </div>
+
+    <div class="status-panel">
+        <div class="status-item"><h3 id="totalPatches">0</h3><p>Total Patches</p></div>
+        <div class="status-item"><h3 id="lastScan">N/A</h3><p>Last Scan</p></div>
+        <div class="status-item"><h3 id="patchErrors">0</h3><p>Errors</p></div>
+    </div>
+
+    <pre id="scanOutput">Output will appear here...</pre>
+    <div id="patchList"><p>No patches loaded yet.</p></div>
+
+    <div class="chart-container">
+        <canvas id="priorityChart" ></canvas>
+        <canvas style="display: none;" id="patchChart" height="200"></canvas>
+    </div>
+  </fieldset> 
+
+<fieldset  style="margin-top: 15px; display: none;" id="chart_fieldset" > 
+    <div class="cpu-header">
+        <h2 class="cpu-title">🧠 Real-Time CPU Monitor</h2>
+        
+    </div>
+
+    <div>
+      <canvas id="cpuThreadsChart" style="margin-top: 10px;margin-bottom: 10px;"></canvas>
+
+        <canvas id="cpuUsageChart" ></canvas>
+        <canvas id="cpuFreqChart" ></canvas>
+    </div>
+
+    <div id="info"></div>
+  </fieldset>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const hostnameInput = document.getElementById("hostname");
+  const scanOutput = document.getElementById("scanOutput");
+  const patchList = document.getElementById("patchList");
+  const totalPatches = document.getElementById("totalPatches");
+  const lastScan = document.getElementById("lastScan");
+  const patchErrors = document.getElementById("patchErrors");
+  const priorityCanvas = document.getElementById("priorityChart");
+  const patchChartCanvas = document.getElementById("patchChart");
+  const chartContainer = document.querySelector(".chart-container");
+
+  let patchChart = new Chart(patchChartCanvas.getContext("2d"), {
+    type:'doughnut',
+    data:{ labels:['Critical','Important','Moderate','Low'], datasets:[{data:[0,0,0,0], backgroundColor:['#e74c3c','#f39c12','#f1c40f','#2ecc71']}] },
+    options:{ responsive:true, plugins:{ legend:{ position:'bottom' }, title:{ display:true, text:'Patch Distribution by Severity' } } }
+  });
+
+  document.getElementById("btnScan").addEventListener("click", async()=>{
+    scanOutput.textContent="Running scan...";
+    try{
+       const host = hostnameInput.value.trim();
+      if (!host) {
+      alert("Enter hostname first");
+      return;
+    }
+      await deletePatches(host);
+      const res=await fetch("/api/run_scan",{method:"POST"});
+      const data=await res.json();
+      scanOutput.textContent=`STDOUT:\n${data.stdout}\n\nSTDERR:\n${data.stderr}`;
+      lastScan.textContent=new Date().toLocaleString();
+      // fetchPatches data 
+      fetchPatchesApi();
+      
+     
+      //
+    }catch(err){ scanOutput.textContent="Failed to run scan"; console.error(err);}
+  });
+
+
+  async function fetchPatchesApi(){
+    var host = hostnameInput.value.trim();
+    patchList.innerHTML="<p>Loading...</p>";
+    chartContainer.style.display="none";
+    
+    try{
+      const res = await fetch(`/api/patches/${encodeURIComponent(host)}`);
+      if(!res.ok){ patchList.innerHTML="<p>No data for that host.</p>"; return; }
+      const data = await res.json();
+      if(!data.patches || data.patches.length===0){ patchList.innerHTML="<p>No patches found.</p>"; return; }
+
+      totalPatches.textContent=data.patches.length;
+      patchErrors.textContent=data.patches.filter(p=>p.severity==='Critical').length;
+
+      let html=`<table><thead><tr><th>KB</th><th>Title</th><th>Severity</th><th>Priority</th><th>Action</th></tr></thead><tbody>`;
+      const priorityLabels=[], priorityData=[];
+      data.patches.forEach(p=>{
+        const color = p.severity==='Critical'?'#e74c3c':p.severity==='Important'?'#f39c12':'#27ae60';
+        html+=`<tr>
+          <td>${p.kb}</td>
+          <td>${p.title}</td>
+          <td style="color:${color}; font-weight:600;">${p.severity}</td>
+          <td>${(p.priority_score||0).toFixed(2)}</td>
+          <td><button style="background:#27C2F5;" onclick="triggerInstall('${data.host}','${p.kb}')">Get Install Cmd</button></td>
+        </tr>`;
+        priorityLabels.push(p.kb); priorityData.push(p.priority_score||0);
+      });
+      html+="</tbody></table>";
+      patchList.innerHTML=html;
+
+      chartContainer.style.display="flex";
+
+      if(priorityCanvas.chart) priorityCanvas.chart.destroy();
+      priorityCanvas.chart = new Chart(priorityCanvas.getContext('2d'), {
+        type:'bar',
+        data:{ labels:priorityLabels, datasets:[{label:'Priority Score', data:priorityData, backgroundColor:priorityData.map(score=>score>7?'#e74c3c':score>4?'#f39c12':'#27ae60')}]},
+        options:{ responsive:true, plugins:{legend:{display:false},title:{display:true,text:`Patch Priority Chart for ${host}`}}, scales:{y:{beginAtZero:true,max:10}} }
+      });
+
+      patchChart.data.datasets[0].data = [
+        data.patches.filter(p=>p.severity==='Critical').length,
+        data.patches.filter(p=>p.severity==='Important').length,
+        data.patches.filter(p=>p.severity==='Moderate').length,
+        data.patches.filter(p=>p.severity==='Low').length
+      ];
+      patchChart.update();
+
+    }catch(err){ patchList.innerHTML=`<p>Error fetching patches: ${err}</p>`; }
+  
+  }
+
+
+  async function fetchPatches(){
+    const host = hostnameInput.value.trim();
+    patchList.innerHTML="<p>Loading...</p>";
+    chartContainer.style.display="none";
+    const out = document.getElementById("patchList");
+   
+
+    if (!host) {
+    
+    out.innerHTML = "<p style='color:red;'>Please enter a hostname before fetching patches.</p>";
+    hostnameInput.focus();
+    return;
+  }
+   else { 
+    
+    try{
+      const res = await fetch(`/api/patches/${encodeURIComponent(host)}`);
+      if(!res.ok){ patchList.innerHTML="<p>No data for that host.</p>"; return; }
+      const data = await res.json();
+      if(!data.patches || data.patches.length===0){ patchList.innerHTML="<p>No patches found.</p>"; return; }
+
+      totalPatches.textContent=data.patches.length;
+      patchErrors.textContent=data.patches.filter(p=>p.severity==='Critical').length;
+
+      let html=`<table><thead><tr><th>KB</th><th>Title</th><th>Severity</th><th>Priority</th><th>Action</th></tr></thead><tbody>`;
+      const priorityLabels=[], priorityData=[];
+      data.patches.forEach(p=>{
+        const color = p.severity==='Critical'?'#e74c3c':p.severity==='Important'?'#f39c12':'#27ae60';
+        html+=`<tr>
+          <td>${p.kb}</td>
+          <td>${p.title}</td>
+          <td style="color:${color}; font-weight:600;">${p.severity}</td>
+          <td>${(p.priority_score||0).toFixed(2)}</td>
+          <td><button style="background:#27C2F5;" onclick="triggerInstall('${data.host}','${p.kb}')">Get Install Cmd</button></td>
+        </tr>`;
+        priorityLabels.push(p.kb); priorityData.push(p.priority_score||0);
+      });
+      html+="</tbody></table>";
+      patchList.innerHTML=html;
+
+      chartContainer.style.display="flex";
+
+      if(priorityCanvas.chart) priorityCanvas.chart.destroy();
+      priorityCanvas.chart = new Chart(priorityCanvas.getContext('2d'), {
+        type:'bar',
+        data:{ labels:priorityLabels, datasets:[{label:'Priority Score', data:priorityData, backgroundColor:priorityData.map(score=>score>7?'#e74c3c':score>4?'#f39c12':'#27ae60')}]},
+        options:{ responsive:true, plugins:{legend:{display:false},title:{display:true,text:`Patch Priority Chart for ${host}`}}, scales:{y:{beginAtZero:true,max:10}} }
+      });
+
+      patchChart.data.datasets[0].data = [
+        data.patches.filter(p=>p.severity==='Critical').length,
+        data.patches.filter(p=>p.severity==='Important').length,
+        data.patches.filter(p=>p.severity==='Moderate').length,
+        data.patches.filter(p=>p.severity==='Low').length
+      ];
+      patchChart.update();
+    
+
+    }catch(err){ patchList.innerHTML=`<p>Error fetching patches: ${err}</p>`; }
+  }
+  }
+  document.getElementById("btnFetch").addEventListener("click", fetchPatches);
+
+  document.getElementById("btndelete").addEventListener("click", async()=>{
+    const host=hostnameInput.value.trim();
+    if(!host) return alert("Enter hostname first");
+    if(!confirm(`Delete all patch entries for ${host}?`)) return;
+    try{
+      const res=await fetch(`/api/patches/${encodeURIComponent(host)}`,{method:"DELETE"});
+      const data=await res.json();
+      alert(`Deleted patches for ${data.host}`);
+      patchList.innerHTML="<p>No patches found.</p>";
+      totalPatches.textContent=0;
+      patchErrors.textContent=0;
+      chartContainer.style.display="none";
+    }catch(err){ console.error(err); alert("Failed to delete patches"); }
+  });
+});
+
+
+ 
+
+async function triggerInstall123(host, kb) {
+    try {
+        const res = await fetch("/api/trigger_install", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ hostname: host, kb: kb })
+        });
+
+        const text = await res.text(); 
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error("Invalid JSON response:", text);
+            alert("Error: Server returned invalid JSON:\n" + text);
+            return;
+        }
+
+        if (data.status === "success") {
+            alert("Success:\n" + data.stdout);
+        } else {
+            alert("Error:\n" + data.stderr);
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Fetch error: " + err);
+    }
+}
+
+
+async function triggerInstall2(host, kb) {
+  try {
+    const res = await fetch("/api/trigger_install", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hostname: host, kb: kb })
+    });
+
+    if (!res.ok) {
+      alert("Error triggering install: " + res.statusText);
+      return;
+    }
+
+    const data = await res.json();
+
+    if (data.status === "success") {
+      alert("PowerShell script executed successfully!\n\nOutput:\n" + data.stdout);
+    } else if (data.status === "error") {
+      alert("PowerShell script failed!\n\nOutput:\n" + data.stdout + "\nError:\n" + data.stderr);
+    } else {
+      alert("Unexpected response from server.");
+    }
+
+  } catch (err) {
+    alert("Error: " + err);
+  }
+}
+
+
+function triggerInstall2(host,kb){ alert(`Generate install command for ${kb} on ${host}`); }
+
+
+async function triggerInstall(host, kb) {
+    try {
+        const res = await fetch("/api/trigger_install", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ hostname: host, kb: kb })
+        });
+
+        if (!res.ok) {
+            alert("Error triggering install: " + res.statusText);
+            return;
+        }
+
+        const data = await res.json();
+        if (!data.instruction) {
+            alert("No install command returned from server.");
+            return;
+        }
+
+        alert("Instruction: " + data.instruction);
+
+    } catch (err) {
+        alert("Error: " + err);
+    }
+}
+
+
+
+document.getElementById("btnHost").addEventListener("click", async () => {
+    const hostnameInput = document.getElementById("hostname");
+    try {
+      const res = await fetch("/api/hostname");
+      const data = await res.json();
+      hostnameInput.value = data.hostname;
+      //alert("Hostname detected: " + data.hostname);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to get hostname.");
+    }
+  });
+
+
+  //
+  // cpu
+  //
+
+    const usageCtx = document.getElementById("cpuUsageChart").getContext("2d");
+    const freqCtx = document.getElementById("cpuFreqChart").getContext("2d");
+
+    // CPU Usage Chart
+    const usageChart = new Chart(usageCtx, {
+      type: "bar",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "CPU Usage per Core (%)",
+            data: [],
+            backgroundColor: "rgba(75, 192, 192, 0.6)",
+            borderColor: "rgba(75, 192, 192, 1)",
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+          },
+        },
+      },
+    });
+
+    // CPU Frequency Chart
+    const freqChart = new Chart(freqCtx, {
+      type: "line",
+      data: {
+        labels: ["Min", "Current", "Max"],
+        datasets: [
+          {
+            label: "CPU Frequency (MHz)",
+            data: [],
+            borderColor: "rgba(153, 102, 255, 1)",
+            backgroundColor: "rgba(153, 102, 255, 0.2)",
+            fill: true,
+          },
+        ],
+      },
+    });
+
+    let intervalId = null;
+
+    document.getElementById("btnFetchCpu").addEventListener("click", () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+        document.getElementById("btnFetchCpu").textContent = "Start Monitoring";
+        document.getElementById("chart_fieldset").style.display = "block";
+       
+      } else {
+        document.getElementById("btnFetchCpu").textContent = "Stop Monitoring";
+        document.getElementById("chart_fieldset").style.display = "block";
+        fetchCPUData();
+        intervalId = setInterval(fetchCPUData, 2000);
+      }
+    });
+
+    async function fetchCPUData() {
+      try {
+         
+        const response = await fetch("/api/cpu"); // Change IP if needed
+        const data = await response.json();
+        // Update CPU usage chart
+        usageChart.data.labels = data.cpu_usage_per_core.map((_, i) => `Core ${i + 1}`);
+        usageChart.data.datasets[0].data = data.cpu_usage_per_core;
+        usageChart.update();
+
+        // Update CPU frequency chart
+        freqChart.data.datasets[0].data = [
+          data.cpu_freq.min,
+          data.cpu_freq.current,
+          data.cpu_freq.max,
+        ];
+        freqChart.update();
+
+        // Update textual info
+        document.getElementById("info").innerHTML = `
+          <strong>Average Usage:</strong> ${data.avg_cpu_usage}%<br>
+          <strong>CPU Count:</strong> ${data.cpu_count}<br>
+          <strong>Context Switches:</strong> ${data.cpu_stats.ctx_switches}<br>
+          <strong>System Calls:</strong> ${data.cpu_stats.syscalls}<br>
+          <strong>User Time:</strong> ${data.cpu_times.user.toFixed(2)}s | 
+          <strong>System Time:</strong> ${data.cpu_times.system.toFixed(2)}s | 
+          <strong>Idle:</strong> ${data.cpu_times.idle.toFixed(2)}s
+        `;
+      } catch (error) {
+        console.error("Error fetching CPU data:", error);
+      }
+    }
+
+
+// updateCPUThreadsChart
+
+
+async function updateCPUThreadsChart() {
+  try {
+    const response = await fetch("/api/cpu_threads");
+    const data = await response.json();
+    
+    if (data.error) {
+      console.error("Backend error:", data.error);
+      return;
+    }
+
+    const labels = data.cores.map(c => `Core ${c.core + 1}`);
+    const userTimes = data.cores.map(c => c.user);
+    const systemTimes = data.cores.map(c => c.system);
+    const idleTimes = data.cores.map(c => c.idle);
+
+    cpuThreadsChart.data.labels = labels;
+    cpuThreadsChart.data.datasets[0].data = userTimes;
+    cpuThreadsChart.data.datasets[1].data = systemTimes;
+    cpuThreadsChart.data.datasets[2].data = idleTimes;
+    cpuThreadsChart.update();
+
+  } catch (error) {
+    console.error("Error updating CPU chart:", error);
+  }
+}
+
+
+    const cpuThreadsCtx = document.getElementById("cpuThreadsChart").getContext("2d");
+    const cpuThreadsChart = new Chart(cpuThreadsCtx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          { label: "User", data: [], borderColor: "#3b82f6", fill: false },
+          { label: "System", data: [], borderColor: "#f59e0b", fill: false },
+          { label: "Idle", data: [], borderColor: "#10b981", fill: false },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "bottom" },
+          title: { display: true, text: "CPU Core Thread Activity", font: { size: 16 } },
+        },
+        scales: {
+          y: { beginAtZero: true, max: 100, title: { display: true, text: "Usage (%)" } },
+        },
+      },
+    });
+
+
+
+
+ async function deletePatches(host) {
+  if (!host) return alert("Enter hostname first");
+  if (!confirm(`Delete all patch entries if existe for ${host}?`)) return;
+
+  try {
+    const res = await fetch(`/api/patches/${encodeURIComponent(host)}`, { method: "DELETE" });
+    const data = await res.json();
+    
+ 
+  } catch (err) {
+    console.error(err);
+    alert("Failed to delete patches");
+  }
+}
+
+
+    // ---------------- Run on Load ----------------
+ 
+    updateCPUThreadsChart();
+    setInterval(updateCPUThreadsChart, 2000);
+
+
+</script>
+</body>
+</html>
