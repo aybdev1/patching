@@ -71,7 +71,17 @@ def api_history(target_name):
     history = get_patch_history(target_name)
     return jsonify(history)
 
+ 
 
 #error from the app and waiting for detection from the piupline
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Secure: no hardcoded debug or host
+    debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    host = os.getenv("FLASK_HOST", "127.0.0.1")   # safe default (localhost)
+
+    app.run(
+        host=host,
+        port=int(os.getenv("FLASK_PORT", 5000)),
+        debug=debug_mode
+    )
+
